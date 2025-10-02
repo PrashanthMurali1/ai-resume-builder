@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",   // or "react-native" for RN
+    "allowJs": true,
+    "esModuleInterop": true
+  },
+  "extends": "expo/tsconfig.base"
+}
