@@ -3,7 +3,6 @@ import { View } from 'react-native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import MainScreen from './src/screens/MainScreen';
 import LandingScreen from './src/screens/LandingScreen';
-import ResumeDisplayScreen from './src/screens/ResumeDisplayScreen';
 import JobDescriptionScreen from './src/screens/JobDescriptionScreen';
 import ATSResultScreen from './src/screens/ATSResultScreen';
 
@@ -12,7 +11,7 @@ export default function App() {
   const [resumeText, setResumeText] = useState<string | null>(null);
   const [jobDescription, setJobDescription] = useState<string | null>(null);
   const [atsResults, setAtsResults] = useState<string[]>([]);
-  const [currentScreen, setCurrentScreen] = useState<'landing' | 'display' | 'job' | 'ats' | 'main'>('landing');
+  const [currentScreen, setCurrentScreen] = useState<'landing' | 'job' | 'ats' | 'main'>('landing');
 
   useEffect(() => {
     // Handle browser back/forward navigation
@@ -38,9 +37,7 @@ export default function App() {
     // Handle hash change (for direct URL navigation)
     const handleHashChange = () => {
       const hash = window.location.hash;
-      if (hash === '#display' && currentScreen !== 'display') {
-        // Handle display screen
-      } else if (hash === '#job' && currentScreen !== 'job') {
+      if (hash === '#job' && currentScreen !== 'job') {
         // Handle job screen
       } else if (hash === '#ats' && currentScreen !== 'ats') {
         // Handle ATS results screen
@@ -59,7 +56,8 @@ export default function App() {
 
     // Set initial state based on URL
     const hash = window.location.hash;
-    const initialScreen = hash === '#main' ? 'main' : hash === '#ats' ? 'ats' : hash === '#job' ? 'job' : hash === '#display' ? 'display' : 'landing';    if (window.history.state === null) {
+    const initialScreen = hash === '#main' ? 'main' : hash === '#ats' ? 'ats' : hash === '#job' ? 'job' : 'landing';
+    if (window.history.state === null) {
       window.history.replaceState({ screen: initialScreen }, '', window.location.href);
     }
 
@@ -69,19 +67,11 @@ export default function App() {
     };
   }, [currentScreen]);
 
-  const handleNavigateToDisplay = (text: string) => {
-    console.log('📄 Navigating to ResumeDisplayScreen');
-    setResumeText(text);
-    setCurrentScreen('display');
-    // Push new state to browser history
-    window.history.pushState({ screen: 'display', resumeText: text }, '', window.location.pathname + '#display');
-  };
-
-  const handleNavigateToJob = (resume: string) => {
+  const handleNavigateToJob = (text: string) => {
     console.log('🧾 Navigating to JobDescriptionScreen');
-    setResumeText(resume);
+    setResumeText(text);
     setCurrentScreen('job');
-    window.history.pushState({ screen: 'job', resumeText: resume }, '', window.location.pathname + '#job');
+    window.history.pushState({ screen: 'job', resumeText: text }, '', window.location.pathname + '#job');
   };
 
   const handleNavigateToATS = (resume: string, jd: string, results: string[]) => {
@@ -115,17 +105,11 @@ export default function App() {
     <PaperProvider>
       <View style={{ flex: 1 }}>
         {currentScreen === 'landing' || resumeText == null ? (
-          <LandingScreen onDone={handleNavigateToDisplay} />
-        ) : currentScreen === 'display' ? (
-          <ResumeDisplayScreen 
-            resumeText={resumeText}
-            onProceed={handleNavigateToJob}
-            onBack={handleNavigateToLanding}
-          />
+          <LandingScreen onDone={handleNavigateToJob} />
         ) : currentScreen === 'job' ? (
           <JobDescriptionScreen 
             resumeText={resumeText}
-            onBack={() => handleNavigateToDisplay(resumeText)}
+            onBack={handleNavigateToLanding}
             onProceed={handleNavigateToATS}
             initialJD={jobDescription ?? ''}
           />
