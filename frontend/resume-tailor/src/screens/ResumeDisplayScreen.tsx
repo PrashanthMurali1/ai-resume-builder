@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, ScrollView } from "react-native";
+import { Dimensions, View, ScrollView } from "react-native";
 import { TextInput, Button, Text } from "react-native-paper";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -8,6 +8,11 @@ interface ResumeDisplayScreenProps {
   onProceed: (editedResumeText: string) => void;
   onBack?: () => void;
 }
+
+// Derive stable dimensions (height & width) based on viewport; clamp to maintain consistency
+const WINDOW = Dimensions.get('window');
+const RESUME_BOX_HEIGHT = Math.min(Math.max(Math.round(WINDOW.height * 0.7), 560), 760); // clamp 560-760
+const RESUME_BOX_WIDTH  = Math.min(Math.max(Math.round(WINDOW.width  * 0.65), 560), 900); // clamp 560-900
 
 export default function ResumeDisplayScreen({ resumeText, onProceed, onBack }: ResumeDisplayScreenProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -31,9 +36,7 @@ export default function ResumeDisplayScreen({ resumeText, onProceed, onBack }: R
     }}>
       {/* Centered container with adaptive width */}
       <View style={{
-        maxWidth: '90%',
-        minWidth: 300,
-        width: 'auto',
+        width: RESUME_BOX_WIDTH,
         alignItems: 'center'
       }}>
         {/* Resume Content Display with positioned buttons */}
@@ -45,9 +48,9 @@ export default function ResumeDisplayScreen({ resumeText, onProceed, onBack }: R
           padding: 16,
           paddingTop: 60, // Space for buttons
           position: 'relative',
-          minHeight: 500,
-          maxWidth: 800,
-          width: '100%'
+          height: RESUME_BOX_HEIGHT,
+          width: '100%',
+          display: 'flex'
         }}>
           {/* Edit button - Top Left Corner of Box */}
           <View style={{
@@ -109,7 +112,7 @@ export default function ResumeDisplayScreen({ resumeText, onProceed, onBack }: R
             Your Resume Content
           </Text>
 
-          <ScrollView style={{ flex: 1, maxHeight: 600 }}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
             {isEditing ? (
               <TextInput
                 mode="outlined"
@@ -117,8 +120,9 @@ export default function ResumeDisplayScreen({ resumeText, onProceed, onBack }: R
                 value={currentResumeText}
                 onChangeText={setCurrentResumeText}
                 style={{ 
-                  minHeight: 400,
-                  backgroundColor: 'transparent'
+                  flex: 1,
+                  backgroundColor: 'transparent',
+                  textAlignVertical: 'top'
                 }}
                 outlineColor="rgba(33, 150, 243, 0.5)"
                 activeOutlineColor="#2196F3"
@@ -135,7 +139,7 @@ export default function ResumeDisplayScreen({ resumeText, onProceed, onBack }: R
                 padding: 16,
                 borderWidth: 1,
                 borderColor: 'rgba(33, 150, 243, 0.2)',
-                minHeight: 400
+                flex: 1
               }}>
                 <Text style={{ 
                   color: '#FFFFFF',
