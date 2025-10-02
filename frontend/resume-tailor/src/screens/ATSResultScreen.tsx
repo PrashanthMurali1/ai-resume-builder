@@ -14,14 +14,11 @@ const BOX_HEIGHT = Math.min(Math.max(Math.round(WINDOW.height * 0.75), 600), 800
 const BOX_WIDTH = Math.min(Math.max(Math.round(WINDOW.width * 0.75), 700), 1000);
 
 export default function ATSResultScreen({ missingRequirements, onBack, onProceed }: ATSResultScreenProps) {
-  // Clean and filter the missing requirements
+  // Filter out single characters, single words, and clean special characters
   const cleanedRequirements = missingRequirements
-    .filter(requirement => requirement && requirement.length > 1) // Ignore single characters
-    .map(requirement => {
-      // Remove special characters from start and end
-      return requirement.replace(/^[^\w\s]+|[^\w\s]+$/g, '').trim();
-    })
-    .filter(requirement => requirement.length > 1); // Filter again after cleaning
+    .filter(req => req.length > 1) // Remove single characters
+    .map(req => req.replace(/^[^\w\s]+|[^\w\s]+$/g, '').trim()) // Remove special chars from start/end
+    .filter(req => req.length > 0 && req.includes(' ')); // Remove empty strings and single words
 
   return (
     <View style={{
