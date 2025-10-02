@@ -8,9 +8,10 @@ import { slugify } from "../utils/slugify";
 
 type MainScreenProps = {
   initialResume?: string;
+  onBack?: () => void;
 };
 
-export default function MainScreen({ initialResume = "" }: MainScreenProps) {
+export default function MainScreen({ initialResume = "", onBack }: MainScreenProps) {
   const [jd, setJD] = useState("");
   const [resume, setResume] = useState(initialResume);
   const [tailored, setTailored] = useState("");
@@ -56,6 +57,17 @@ export default function MainScreen({ initialResume = "" }: MainScreenProps) {
     <View style={{ flex: 1, flexDirection: "row", gap: 8, padding: 12 }}>
       <Pane title="Original Resume">
         <ScrollView>
+          {onBack && (
+            <Button 
+              mode="outlined" 
+              onPress={onBack}
+              style={{ borderRadius: 20, marginBottom: 12, alignSelf: 'flex-start' }}
+              contentStyle={{ paddingVertical: 4 }}
+              icon="arrow-left"
+            >
+              Back to Upload
+            </Button>
+          )}
           <TextInput
             mode="outlined"
             multiline
