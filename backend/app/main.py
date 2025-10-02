@@ -12,7 +12,7 @@ from pypdf import PdfReader
 from reportlab.lib.pagesizes import LETTER
 from reportlab.pdfgen import canvas
 
-from .prompts import TAILOR_PROMPT, KEYWORDS_PROMPT, COMPANY_PROMPT
+from .prompts import TAILOR_PROMPT, KEYWORDS_PROMPT, COMPANY_PROMPT, ATS_ANALYSIS_PROMPT
 from .utils import slugify, missing_keywords
 
 load_dotenv()
@@ -172,6 +172,33 @@ async def parse(file: UploadFile = File(...)):
         return {"text": text}
     except Exception as e:
         raise HTTPException(400, f"Failed to parse file: {e}")
+
+@app.post("/ats-check")
+async def ats_check(req: TailorReq):
+    if not req.resume_text.strip():
+        raise HTTPException(400, "resume_text is empty")
+    if not req.jd_text.strip():
+        raise HTTPException(400, "jd_text is empty")
+    try:
+        prompt = ATS_ANALYSIS_PROMPT.format(resume=req.resume_text, jd=req.jd_text)
+    except KeyError as e:
+        # In case braces in prompt cause format issues
+        raise HTTPException(500, f"Prompt template error: missing key {e}")
+    logger.info("/ats-check resume_len=%d jd_len=%d", len(req.resume_text), len(req.jd_text))
+    text = await ollama_generate(prompt)
+    
+    # Parse the response to extract missing requirements
+    try:
+        import json
+        missing_items = json.loads(text)
+        if not isinstance(missing_items, list):
+            missing_items = []
+    except Exception:
+        # Fallback to line-by-line parsing if JSON fails
+        lines = text.strip().split('\n')
+        missing_items = [line.strip('- •').strip() for line in lines if line.strip() and not line.strip().startswith('#')]
+    
+    return {"missing_requirements": missing_items, "model": OLLAMA_MODEL}
 
 @app.post("/tailor")
 async def tailor(req: TailorReq):

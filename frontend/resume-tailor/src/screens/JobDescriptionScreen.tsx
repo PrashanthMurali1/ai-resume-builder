@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Dimensions } from 'react-native';
+import { View, Dimensions, Alert } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as API from '../api';
 
 interface JobDescriptionScreenProps {
+  resumeText: string;
   onBack: () => void;
-  onProceed: (jobDescription: string) => void;
+  onProceed: (resume: string, jd: string, atsResults: string[]) => void;
   initialJD?: string;
 }
 
@@ -13,8 +15,23 @@ const WINDOW = Dimensions.get('window');
 const BOX_HEIGHT = Math.min(Math.max(Math.round(WINDOW.height * 0.65), 480), 700);
 const BOX_WIDTH = Math.min(Math.max(Math.round(WINDOW.width * 0.65), 560), 900);
 
-export default function JobDescriptionScreen({ onBack, onProceed, initialJD = '' }: JobDescriptionScreenProps) {
+export default function JobDescriptionScreen({ resumeText, onBack, onProceed, initialJD = '' }: JobDescriptionScreenProps) {
   const [jd, setJD] = useState(initialJD);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleProceed = async () => {
+    if (!jd.trim()) return;
+    
+    setIsProcessing(true);
+    try {
+      const atsResults = await API.atsCheck(resumeText, jd);
+      onProceed(resumeText, jd, atsResults);
+    } catch (error: any) {
+      Alert.alert('ATS Check Failed', error?.message ?? String(error));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <View style={{
@@ -53,14 +70,15 @@ export default function JobDescriptionScreen({ onBack, onProceed, initialJD = ''
         <View style={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }}>
           <Button
             mode="contained"
-            onPress={() => onProceed(jd)}
-            disabled={!jd.trim()}
+            onPress={handleProceed}
+            disabled={!jd.trim() || isProcessing}
+            loading={isProcessing}
             style={{ backgroundColor: '#2196F3', borderRadius: 20, minWidth: 90 }}
             contentStyle={{ paddingVertical: 6, paddingHorizontal: 12 }}
             compact
             icon={({ size, color }) => <MaterialCommunityIcons name="arrow-right" size={size} color={color} />}
           >
-            Proceed
+            {isProcessing ? 'Analyzing...' : 'Proceed'}
           </Button>
         </View>
 

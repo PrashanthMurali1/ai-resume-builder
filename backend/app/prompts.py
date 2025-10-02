@@ -22,3 +22,24 @@ Return ONLY the company name as plain text.
 JOB DESCRIPTION:
 {jd}
 """
+
+ATS_ANALYSIS_PROMPT = """You are an ATS (Applicant Tracking System) analyzer.
+
+Compare the RESUME content against the JOB DESCRIPTION requirements.
+
+Identify each individual requirement, skill, qualification, or responsibility mentioned in the JOB DESCRIPTION that is NOT satisfied or missing from the RESUME content.
+
+Return ONLY a JSON array of strings, where each string is a specific requirement/point from the job description that the resume does not adequately address.
+
+Focus on:
+- Required technical skills not mentioned in resume
+- Specific qualifications or certifications missing
+- Key responsibilities or experiences not demonstrated
+- Important keywords or phrases absent from resume
+
+RESUME:
+{resume}
+
+JOB DESCRIPTION:
+{jd}
+"""

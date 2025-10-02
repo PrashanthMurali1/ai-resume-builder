@@ -22,6 +22,11 @@ export async function parseFile(fileOrPath: File | string, name?: string) {
   return data.text as string;
 }
 
+export async function atsCheck(resume_text: string, jd_text: string) {
+  const { data } = await axios.post(`${BASE}/ats-check`, { resume_text, jd_text });
+  return data.missing_requirements as string[];
+}
+
 export async function tailor(resume_text: string, jd_text: string) {
   const { data } = await axios.post(`${BASE}/tailor`, { resume_text, jd_text });
   return data.tailored as string;

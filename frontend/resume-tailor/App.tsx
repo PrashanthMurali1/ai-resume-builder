@@ -5,12 +5,14 @@ import MainScreen from './src/screens/MainScreen';
 import LandingScreen from './src/screens/LandingScreen';
 import ResumeDisplayScreen from './src/screens/ResumeDisplayScreen';
 import JobDescriptionScreen from './src/screens/JobDescriptionScreen';
+import ATSResultScreen from './src/screens/ATSResultScreen';
 
 export default function App() {
   console.log("✅ App.tsx is loaded");
   const [resumeText, setResumeText] = useState<string | null>(null);
   const [jobDescription, setJobDescription] = useState<string | null>(null);
-  const [currentScreen, setCurrentScreen] = useState<'landing' | 'display' | 'job' | 'main'>('landing');
+  const [atsResults, setAtsResults] = useState<string[]>([]);
+  const [currentScreen, setCurrentScreen] = useState<'landing' | 'display' | 'job' | 'ats' | 'main'>('landing');
 
   useEffect(() => {
     // Handle browser back/forward navigation
@@ -20,6 +22,16 @@ export default function App() {
       setCurrentScreen(state.screen);
       if (state.screen === 'landing') {
         setResumeText(null);
+        setJobDescription(null);
+        setAtsResults([]);
+      } else if (state.resumeText) {
+        setResumeText(state.resumeText);
+      }
+      if (state.jobDescription) {
+        setJobDescription(state.jobDescription);
+      }
+      if (state.atsResults) {
+        setAtsResults(state.atsResults);
       }
     };
 
@@ -30,6 +42,8 @@ export default function App() {
         // Handle display screen
       } else if (hash === '#job' && currentScreen !== 'job') {
         // Handle job screen
+      } else if (hash === '#ats' && currentScreen !== 'ats') {
+        // Handle ATS results screen
       } else if (hash === '#main' && currentScreen !== 'main') {
         // Handle main screen
       } else if (!hash && currentScreen !== 'landing') {
@@ -45,9 +59,7 @@ export default function App() {
 
     // Set initial state based on URL
     const hash = window.location.hash;
-  const initialScreen = hash === '#main' ? 'main' : hash === '#job' ? 'job' : hash === '#display' ? 'display' : 'landing';
-    
-    if (window.history.state === null) {
+    const initialScreen = hash === '#main' ? 'main' : hash === '#ats' ? 'ats' : hash === '#job' ? 'job' : hash === '#display' ? 'display' : 'landing';    if (window.history.state === null) {
       window.history.replaceState({ screen: initialScreen }, '', window.location.href);
     }
 
@@ -72,6 +84,15 @@ export default function App() {
     window.history.pushState({ screen: 'job', resumeText: resume }, '', window.location.pathname + '#job');
   };
 
+  const handleNavigateToATS = (resume: string, jd: string, results: string[]) => {
+    console.log('🔍 Navigating to ATSResultScreen');
+    setResumeText(resume);
+    setJobDescription(jd);
+    setAtsResults(results);
+    setCurrentScreen('ats');
+    window.history.pushState({ screen: 'ats', resumeText: resume, jobDescription: jd, atsResults: results }, '', window.location.pathname + '#ats');
+  };
+
   const handleNavigateToMain = (resume: string, jd: string) => {
     console.log('🚀 Navigating to MainScreen');
     setResumeText(resume);
@@ -84,6 +105,7 @@ export default function App() {
     console.log('🏠 Navigating to LandingScreen');
     setResumeText(null);
     setJobDescription(null);
+    setAtsResults([]);
     setCurrentScreen('landing');
     // Push new state to browser history
     window.history.pushState({ screen: 'landing' }, '', window.location.pathname);
@@ -102,9 +124,19 @@ export default function App() {
           />
         ) : currentScreen === 'job' ? (
           <JobDescriptionScreen 
+            resumeText={resumeText}
             onBack={() => handleNavigateToDisplay(resumeText)}
-            onProceed={(jd) => handleNavigateToMain(resumeText, jd)}
+            onProceed={handleNavigateToATS}
             initialJD={jobDescription ?? ''}
+          />
+        ) : currentScreen === 'ats' ? (
+          <ATSResultScreen 
+            missingRequirements={atsResults}
+            onBack={() => {
+              setCurrentScreen('job');
+              window.history.pushState({ screen: 'job', resumeText, jobDescription }, '', window.location.pathname + '#job');
+            }}
+            onProceed={() => handleNavigateToMain(resumeText, jobDescription)}
           />
         ) : (
           <MainScreen 
