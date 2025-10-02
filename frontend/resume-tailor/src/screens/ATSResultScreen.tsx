@@ -14,6 +14,15 @@ const BOX_HEIGHT = Math.min(Math.max(Math.round(WINDOW.height * 0.75), 600), 800
 const BOX_WIDTH = Math.min(Math.max(Math.round(WINDOW.width * 0.75), 700), 1000);
 
 export default function ATSResultScreen({ missingRequirements, onBack, onProceed }: ATSResultScreenProps) {
+  // Clean and filter the missing requirements
+  const cleanedRequirements = missingRequirements
+    .filter(requirement => requirement && requirement.length > 1) // Ignore single characters
+    .map(requirement => {
+      // Remove special characters from start and end
+      return requirement.replace(/^[^\w\s]+|[^\w\s]+$/g, '').trim();
+    })
+    .filter(requirement => requirement.length > 1); // Filter again after cleaning
+
   return (
     <View style={{
       flex: 1,
@@ -77,14 +86,14 @@ export default function ATSResultScreen({ missingRequirements, onBack, onProceed
           fontSize: 14, 
           marginBottom: 20 
         }}>
-          {missingRequirements.length === 0 
+          {cleanedRequirements.length === 0 
             ? "Great! Your resume matches all job requirements." 
-            : `Found ${missingRequirements.length} requirements that could be better addressed:`
+            : `Found ${cleanedRequirements.length} requirements that could be better addressed:`
           }
         </Text>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 16 }}>
-          {missingRequirements.length === 0 ? (
+          {cleanedRequirements.length === 0 ? (
             <View style={{
               backgroundColor: 'rgba(76, 175, 80, 0.2)',
               borderRadius: 12,
@@ -113,7 +122,7 @@ export default function ATSResultScreen({ missingRequirements, onBack, onProceed
               </Text>
             </View>
           ) : (
-            missingRequirements.map((requirement, index) => (
+            cleanedRequirements.map((requirement, index) => (
               <View
                 key={index}
                 style={{
