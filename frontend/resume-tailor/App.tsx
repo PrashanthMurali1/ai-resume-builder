@@ -3,11 +3,12 @@ import { View } from 'react-native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import MainScreen from './src/screens/MainScreen';
 import LandingScreen from './src/screens/LandingScreen';
+import ResumeDisplayScreen from './src/screens/ResumeDisplayScreen';
 
 export default function App() {
   console.log("✅ App.tsx is loaded");
-  const [initialResume, setInitialResume] = useState<string | null>(null);
-  const [currentScreen, setCurrentScreen] = useState<'landing' | 'main'>('landing');
+  const [resumeText, setResumeText] = useState<string | null>(null);
+  const [currentScreen, setCurrentScreen] = useState<'landing' | 'display' | 'main'>('landing');
 
   useEffect(() => {
     // Handle browser back/forward navigation
@@ -16,19 +17,20 @@ export default function App() {
       console.log('🔄 Browser navigation:', state);
       setCurrentScreen(state.screen);
       if (state.screen === 'landing') {
-        setInitialResume(null);
+        setResumeText(null);
       }
     };
 
     // Handle hash change (for direct URL navigation)
     const handleHashChange = () => {
       const hash = window.location.hash;
-      if (hash === '#main' && currentScreen !== 'main') {
-        // Don't change if we're already on main screen
-        // This prevents losing resume data on refresh
+      if (hash === '#display' && currentScreen !== 'display') {
+        // Handle display screen
+      } else if (hash === '#main' && currentScreen !== 'main') {
+        // Handle main screen
       } else if (!hash && currentScreen !== 'landing') {
         setCurrentScreen('landing');
-        setInitialResume(null);
+        setResumeText(null);
       }
     };
 
@@ -38,7 +40,7 @@ export default function App() {
 
     // Set initial state based on URL
     const hash = window.location.hash;
-    const initialScreen = hash === '#main' ? 'main' : 'landing';
+    const initialScreen = hash === '#main' ? 'main' : hash === '#display' ? 'display' : 'landing';
     
     if (window.history.state === null) {
       window.history.replaceState({ screen: initialScreen }, '', window.location.href);
@@ -50,9 +52,17 @@ export default function App() {
     };
   }, [currentScreen]);
 
+  const handleNavigateToDisplay = (text: string) => {
+    console.log('📄 Navigating to ResumeDisplayScreen');
+    setResumeText(text);
+    setCurrentScreen('display');
+    // Push new state to browser history
+    window.history.pushState({ screen: 'display', resumeText: text }, '', window.location.pathname + '#display');
+  };
+
   const handleNavigateToMain = (text: string) => {
     console.log('🚀 Navigating to MainScreen');
-    setInitialResume(text);
+    setResumeText(text);
     setCurrentScreen('main');
     // Push new state to browser history
     window.history.pushState({ screen: 'main', resumeText: text }, '', window.location.pathname + '#main');
@@ -60,7 +70,7 @@ export default function App() {
 
   const handleNavigateToLanding = () => {
     console.log('🏠 Navigating to LandingScreen');
-    setInitialResume(null);
+    setResumeText(null);
     setCurrentScreen('landing');
     // Push new state to browser history
     window.history.pushState({ screen: 'landing' }, '', window.location.pathname);
@@ -69,11 +79,17 @@ export default function App() {
   return (
     <PaperProvider>
       <View style={{ flex: 1 }}>
-        {currentScreen === 'landing' || initialResume == null ? (
-          <LandingScreen onDone={handleNavigateToMain} />
+        {currentScreen === 'landing' || resumeText == null ? (
+          <LandingScreen onDone={handleNavigateToDisplay} />
+        ) : currentScreen === 'display' ? (
+          <ResumeDisplayScreen 
+            resumeText={resumeText}
+            onProceed={handleNavigateToMain}
+            onBack={handleNavigateToLanding}
+          />
         ) : (
           <MainScreen 
-            initialResume={initialResume} 
+            initialResume={resumeText} 
             onBack={handleNavigateToLanding}
           />
         )}
