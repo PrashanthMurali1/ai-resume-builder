@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import {View, Text, Alert, Button} from "react-native";
+import { View, Alert } from "react-native";
+import { Text } from "react-native-paper";
 import Pane from "../components/Pane";
 import FilePicker from "../components/FilePicker";
 import * as API from "../api";
@@ -24,15 +25,18 @@ export default function LandingScreen({ onDone }: LandingScreenProps) {
   };
 
   return (
-    <View style={{ flex: 1, padding: 12 }}>
+    <View style={{ 
+      flex: 1, 
+      backgroundColor: '#000000',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 12 
+    }}>
       <Pane title="Upload your resume (PDF/DOCX)">
-        <Text style={{ marginBottom: 12 }}>
+        <Text variant="bodyMedium" style={{ marginBottom: 12, color: '#FFFFFF', textAlign: 'center' }}>
           Select your existing resume file to get started. After upload, you'll be taken to the tailoring screen.
         </Text>
-        <FilePicker onPick={importFile} />
-        <View style={{ marginTop: 12 }}>
-          <Button title={busy ? "Processing…" : "Choose File"} onPress={() => { /* The FilePicker renders its own button */ }} disabled={busy} />
-        </View>
+        <FilePicker onPick={importFile} busy={busy} />
       </Pane>
     </View>
   );

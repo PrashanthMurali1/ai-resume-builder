@@ -1,30 +1,22 @@
 import React, { useState } from "react";
-import { View, TextInput, Button, Text, ScrollView, Alert } from "react-native";
+import { View, ScrollView, Alert } from "react-native";
+import { TextInput, Button, Text } from "react-native-paper";
 import Pane from "../components/Pane";
-import FilePicker from "../components/FilePicker";
 import HighlightedText from "../components/HighlightedText";
 import * as API from "../api";
 import { slugify } from "../utils/slugify";
 
-export default function MainScreen() {
+type MainScreenProps = {
+  initialResume?: string;
+};
+
+export default function MainScreen({ initialResume = "" }: MainScreenProps) {
   const [jd, setJD] = useState("");
-  const [resume, setResume] = useState("");
+  const [resume, setResume] = useState(initialResume);
   const [tailored, setTailored] = useState("");
   const [missing, setMissing] = useState<string[]>([]);
   const [company, setCompany] = useState("draft");
   const [busy, setBusy] = useState(false);
-
-  const importFile = async (fileOrPath: File | string, name:string) => {
-    setBusy(true);
-    try {
-      const text = await API.parseFile(fileOrPath, name);
-      setResume(text);
-    } catch (e:any) {
-      Alert.alert("Import failed", e?.message ?? String(e));
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const runTailor = async () => {
     setBusy(true);
@@ -64,30 +56,62 @@ export default function MainScreen() {
     <View style={{ flex: 1, flexDirection: "row", gap: 8, padding: 12 }}>
       <Pane title="Original Resume">
         <ScrollView>
-          <FilePicker onPick={importFile} />
           <TextInput
+            mode="outlined"
             multiline
             value={resume}
             onChangeText={setResume}
             placeholder="Paste your resume text here..."
-            style={{ minHeight: 240 }}
+            style={{ minHeight: 240, marginBottom: 12 }}
           />
-          <Text style={{ marginTop: 8, fontWeight: "600" }}>Missing Keywords (from JD):</Text>
+          <Text variant="titleSmall" style={{ marginTop: 8, fontWeight: "600", marginBottom: 8 }}>Missing Keywords (from JD):</Text>
           <HighlightedText text={resume} searchWords={missing} />
         </ScrollView>
-        <View style={{ flexDirection:"row", gap:8, marginTop: 8 }}>
-          <Button title={busy ? "Working…" : "Tailor w/ Ollama"} onPress={runTailor} disabled={busy || !jd || !resume} />
-          <Button title="Accept Changes" onPress={accept} disabled={!tailored} />
+        <View style={{ flexDirection:"row", gap:8, marginTop: 12 }}>
+          <Button 
+            mode="contained" 
+            onPress={runTailor} 
+            disabled={busy || !jd || !resume}
+            loading={busy}
+            style={{ borderRadius: 20, flex: 1 }}
+            contentStyle={{ paddingVertical: 4 }}
+          >
+            {busy ? "Working…" : "Tailor w/ Ollama"}
+          </Button>
+          <Button 
+            mode="outlined" 
+            onPress={accept} 
+            disabled={!tailored}
+            style={{ borderRadius: 20, flex: 1 }}
+            contentStyle={{ paddingVertical: 4 }}
+          >
+            Accept Changes
+          </Button>
         </View>
         <View style={{ flexDirection:"row", gap:8, marginTop: 8 }}>
-          <Button title="Export DOCX" onPress={()=>saveDoc("docx")} />
-          <Button title="Export PDF"  onPress={()=>saveDoc("pdf")} />
+          <Button 
+            mode="contained-tonal" 
+            onPress={()=>saveDoc("docx")}
+            style={{ borderRadius: 20, flex: 1 }}
+            contentStyle={{ paddingVertical: 4 }}
+          >
+            Export DOCX
+          </Button>
+          <Button 
+            mode="contained-tonal" 
+            onPress={()=>saveDoc("pdf")}
+            style={{ borderRadius: 20, flex: 1 }}
+            contentStyle={{ paddingVertical: 4 }}
+          >
+            Export PDF
+          </Button>
         </View>
       </Pane>
 
       <Pane title="AI-Suggested Rewrite">
         <ScrollView>
           <TextInput
+            mode="outlined"
             multiline
             value={tailored}
             onChangeText={setTailored}
@@ -100,13 +124,14 @@ export default function MainScreen() {
       <Pane title="Job Description">
         <ScrollView>
           <TextInput
+            mode="outlined"
             multiline
             value={jd}
             onChangeText={setJD}
             placeholder="Paste job description here…"
-            style={{ minHeight: 520 }}
+            style={{ minHeight: 520, marginBottom: 8 }}
           />
-          <Text style={{ marginTop: 6, color:"#666" }}>Detected company: {company || "—"}</Text>
+          <Text variant="bodySmall" style={{ marginTop: 6, color:"#666" }}>Detected company: {company || "—"}</Text>
         </ScrollView>
       </Pane>
     </View>
