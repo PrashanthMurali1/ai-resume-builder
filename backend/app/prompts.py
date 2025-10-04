@@ -46,24 +46,39 @@ JOB DESCRIPTION:
 
 RESUME_PARSING_PROMPT = """You are an expert resume parser. Extract and categorize the following information from the RESUME text into structured sections.
 
-Return ONLY a JSON object with these exact keys:
-- "profile": Contact information only (name, phone number, email, location, LinkedIn URL, website, etc.) - NO professional summary here
-- "summary": Professional summary, objective, or career summary paragraph - the descriptive text about the person's experience and skills
-- "education": All educational qualifications, degrees, certifications, courses as formatted text
-- "skills": Technical skills, programming languages, tools, frameworks, soft skills as formatted text
-- "work_experience": All work experience, internships, job positions with descriptions as formatted text
-- "projects": Personal projects, academic projects, side projects with descriptions as formatted text
+Return ONLY a valid JSON object with these exact keys, each containing a STRING value:
 
-Guidelines:
-- Profile section should ONLY contain contact details (name, phone, email, address, LinkedIn, etc.)
-- Summary section should contain the professional summary/objective paragraph describing experience and expertise
-- ALL sections must return plain text strings, NOT arrays or objects
-- Preserve the original text formatting with line breaks and bullet points where appropriate
-- If a section is not present or empty, return an empty string
-- Maintain the original formatting and details
-- Do not add any information not present in the original resume
-- Preserve dates, company names, and specific details
-- Format multi-line sections with proper line breaks (\n)
+{{
+  "profile": "string containing contact info only",
+  "summary": "string containing professional summary",
+  "education": "string containing education details", 
+  "skills": "string containing skills list",
+  "work_experience": "string containing work history",
+  "projects": "string containing projects"
+}}
+
+CRITICAL RULES:
+- ALL values must be plain TEXT STRINGS, never arrays, objects, or nested structures
+- Profile: ONLY contact details (name, phone, email, location, LinkedIn URL)
+- Summary: Professional summary paragraph describing experience and skills
+- Education: Educational background as continuous text with line breaks
+- Skills: All skills as continuous text (e.g., "Python, JavaScript, React, AWS, Docker")
+- Work Experience: Job history as continuous text with line breaks between jobs
+- Projects: Project descriptions as continuous text with line breaks between projects
+- Use \\n for line breaks within strings
+- If any section is missing, use empty string ""
+- DO NOT create arrays, objects, or JSON within JSON
+- Preserve original text and formatting where possible
+
+Example output format:
+{{
+  "profile": "John Doe\\nEmail: john@email.com\\nPhone: (555) 123-4567\\nLocation: San Francisco, CA",
+  "summary": "Experienced software engineer with 5 years in web development...",
+  "education": "Bachelor of Science in Computer Science\\nUniversity of California, Berkeley\\n2019",
+  "skills": "Python, JavaScript, React, Node.js, AWS, Docker, PostgreSQL",
+  "work_experience": "Software Engineer at Tech Corp (2019-2024)\\n- Built web applications\\n- Led development team",
+  "projects": "E-commerce Platform\\n- Full-stack development\\n- React and Node.js"
+}}
 
 RESUME:
 {resume}

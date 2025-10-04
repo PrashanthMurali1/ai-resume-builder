@@ -142,6 +142,74 @@ class ParseLocalReq(BaseModel):
 class ParseStructuredReq(BaseModel):
     resume_text: str
 
+# ---------- Helper Functions ----------
+def manual_parse_resume(resume_text: str) -> dict:
+    """Manual parsing fallback when LLM fails"""
+    lines = resume_text.strip().split('\n')
+    
+    # Initialize sections
+    sections = {
+        "profile": "",
+        "summary": "",
+        "education": "",
+        "skills": "",
+        "work_experience": "",
+        "projects": ""
+    }
+    
+    # Try to extract contact info from first few lines
+    contact_lines = []
+    for i, line in enumerate(lines[:10]):  # Check first 10 lines
+        line = line.strip()
+        if any(keyword in line.lower() for keyword in ['email', '@', 'phone', 'tel', 'linkedin', 'github']):
+            contact_lines.append(line)
+        elif line and not any(char.isalpha() for char in line):  # Phone number pattern
+            contact_lines.append(line)
+    
+    if contact_lines:
+        sections["profile"] = "\n".join(contact_lines)
+    
+    # Basic section detection
+    current_section = None
+    section_content = []
+    
+    for line in lines:
+        line_lower = line.lower().strip()
+        
+        # Detect section headers
+        if any(keyword in line_lower for keyword in ['education', 'degree', 'university', 'college']):
+            if current_section:
+                sections[current_section] = "\n".join(section_content)
+            current_section = "education"
+            section_content = [line]
+        elif any(keyword in line_lower for keyword in ['skill', 'technical', 'programming', 'language']):
+            if current_section:
+                sections[current_section] = "\n".join(section_content)
+            current_section = "skills"
+            section_content = [line]
+        elif any(keyword in line_lower for keyword in ['experience', 'work', 'employment', 'job']):
+            if current_section:
+                sections[current_section] = "\n".join(section_content)
+            current_section = "work_experience"
+            section_content = [line]
+        elif any(keyword in line_lower for keyword in ['project', 'portfolio']):
+            if current_section:
+                sections[current_section] = "\n".join(section_content)
+            current_section = "projects"
+            section_content = [line]
+        elif current_section and line.strip():
+            section_content.append(line)
+    
+    # Add the last section
+    if current_section and section_content:
+        sections[current_section] = "\n".join(section_content)
+    
+    # If no sections were found, put everything in summary
+    if not any(sections.values()):
+        sections["summary"] = resume_text
+    
+    return sections
+
 # ---------- Endpoints ----------
 @app.get("/health")
 async def health():
@@ -196,10 +264,36 @@ async def parse_structured(req: ParseStructuredReq):
         # Parse the JSON response
         try:
             structured_data = json.loads(text)
-            # Ensure we have the summary field
-            if "summary" not in structured_data:
-                structured_data["summary"] = ""
-            return structured_data
+            logger.info(f"Successfully parsed JSON with keys: {list(structured_data.keys())}")
+            
+            # Ensure all required fields exist and convert to strings
+            result = {}
+            required_fields = ["profile", "summary", "education", "skills", "work_experience", "projects"]
+            
+            for field in required_fields:
+                if field in structured_data:
+                    value = structured_data[field]
+                    # Convert any non-string values to strings
+                    if isinstance(value, (list, dict)):
+                        if isinstance(value, list):
+                            # Convert list to string with newlines
+                            result[field] = "\n".join(str(item) for item in value if str(item).strip())
+                        else:
+                            # Convert dict to string representation
+                            result[field] = str(value)
+                        logger.warning(f"Converted {field} from {type(value)} to string")
+                    else:
+                        result[field] = str(value) if value is not None else ""
+                else:
+                    result[field] = ""
+                    logger.warning(f"Missing field {field}, using empty string")
+            
+            # Log the final result types
+            for field, value in result.items():
+                logger.info(f"{field}: {type(value)} - length {len(value)}")
+            
+            return result
+            
         except json.JSONDecodeError as json_err:
             logger.warning(f"JSON decode error: {json_err}")
             logger.warning(f"Raw LLM response: {text}")
@@ -212,26 +306,45 @@ async def parse_structured(req: ParseStructuredReq):
                     extracted_json = json_match.group()
                     logger.info(f"Extracted JSON: {extracted_json[:200]}...")
                     structured_data = json.loads(extracted_json)
-                    # Ensure we have the summary field
-                    if "summary" not in structured_data:
-                        structured_data["summary"] = ""
-                    return structured_data
+                    
+                    # Apply the same validation as above
+                    result = {}
+                    required_fields = ["profile", "summary", "education", "skills", "work_experience", "projects"]
+                    
+                    for field in required_fields:
+                        if field in structured_data:
+                            value = structured_data[field]
+                            if isinstance(value, (list, dict)):
+                                if isinstance(value, list):
+                                    result[field] = "\n".join(str(item) for item in value if str(item).strip())
+                                else:
+                                    result[field] = str(value)
+                            else:
+                                result[field] = str(value) if value is not None else ""
+                        else:
+                            result[field] = ""
+                    
+                    return result
+                    
                 except json.JSONDecodeError as extract_err:
                     logger.error(f"Failed to parse extracted JSON: {extract_err}")
             
-            # Fallback: return default structure
-            logger.info("Using fallback structure")
-            return {
-                "profile": "",
-                "summary": "",
-                "education": "",
-                "skills": "",
-                "work_experience": "",
-                "projects": ""
-            }
+            # Last resort: try to parse the resume manually
+            logger.info("Attempting manual resume parsing as fallback")
+            manual_result = manual_parse_resume(req.resume_text)
+            return manual_result
+            
     except Exception as e:
         logger.error(f"Error in structured parsing: {e}")
-        raise HTTPException(500, f"Failed to parse resume structure: {e}")
+        # Return default structure instead of raising exception
+        return {
+            "profile": "",
+            "summary": "",
+            "education": "",
+            "skills": "",
+            "work_experience": "",
+            "projects": ""
+        }
 
 @app.post("/ats-check")
 async def ats_check(req: TailorReq):
