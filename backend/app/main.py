@@ -12,7 +12,7 @@ from pypdf import PdfReader
 from reportlab.lib.pagesizes import LETTER
 from reportlab.pdfgen import canvas
 
-from .prompts import TAILOR_PROMPT, KEYWORDS_PROMPT, COMPANY_PROMPT, ATS_ANALYSIS_PROMPT
+from .prompts import TAILOR_PROMPT, KEYWORDS_PROMPT, COMPANY_PROMPT, ATS_ANALYSIS_PROMPT, RESUME_PARSING_PROMPT
 from .utils import slugify, missing_keywords
 
 load_dotenv()
@@ -139,6 +139,9 @@ class ExportReq(BaseModel):
 class ParseLocalReq(BaseModel):
     path: str
 
+class ParseStructuredReq(BaseModel):
+    resume_text: str
+
 # ---------- Endpoints ----------
 @app.get("/health")
 async def health():
@@ -172,6 +175,63 @@ async def parse(file: UploadFile = File(...)):
         return {"text": text}
     except Exception as e:
         raise HTTPException(400, f"Failed to parse file: {e}")
+
+@app.post("/parse-structured")
+async def parse_structured(req: ParseStructuredReq):
+    if not req.resume_text.strip():
+        raise HTTPException(400, "resume_text is empty")
+    
+    try:
+        prompt = RESUME_PARSING_PROMPT.format(resume=req.resume_text)
+    except KeyError as e:
+        raise HTTPException(500, f"Prompt template error: missing key {e}")
+    
+    logger.info("/parse-structured resume_len=%d", len(req.resume_text))
+    
+    try:
+        text = await ollama_generate(prompt)
+        logger.info(f"LLM Response length: {len(text)} chars")
+        logger.info(f"LLM Response preview: {text[:200]}...")
+        
+        # Parse the JSON response
+        try:
+            structured_data = json.loads(text)
+            # Ensure we have the summary field
+            if "summary" not in structured_data:
+                structured_data["summary"] = ""
+            return structured_data
+        except json.JSONDecodeError as json_err:
+            logger.warning(f"JSON decode error: {json_err}")
+            logger.warning(f"Raw LLM response: {text}")
+            
+            # If JSON parsing fails, try to extract JSON from the response
+            import re
+            json_match = re.search(r'\{.*\}', text, re.DOTALL)
+            if json_match:
+                try:
+                    extracted_json = json_match.group()
+                    logger.info(f"Extracted JSON: {extracted_json[:200]}...")
+                    structured_data = json.loads(extracted_json)
+                    # Ensure we have the summary field
+                    if "summary" not in structured_data:
+                        structured_data["summary"] = ""
+                    return structured_data
+                except json.JSONDecodeError as extract_err:
+                    logger.error(f"Failed to parse extracted JSON: {extract_err}")
+            
+            # Fallback: return default structure
+            logger.info("Using fallback structure")
+            return {
+                "profile": "",
+                "summary": "",
+                "education": "",
+                "skills": "",
+                "work_experience": "",
+                "projects": ""
+            }
+    except Exception as e:
+        logger.error(f"Error in structured parsing: {e}")
+        raise HTTPException(500, f"Failed to parse resume structure: {e}")
 
 @app.post("/ats-check")
 async def ats_check(req: TailorReq):

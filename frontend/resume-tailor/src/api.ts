@@ -27,6 +27,20 @@ export async function atsCheck(resume_text: string, jd_text: string) {
   return data.missing_requirements as string[];
 }
 
+export interface StructuredResumeData {
+  profile: string;
+  summary: string;
+  education: string;
+  skills: string;
+  work_experience: string;
+  projects: string;
+}
+
+export async function parseStructuredResume(resume_text: string): Promise<StructuredResumeData> {
+  const { data } = await axios.post(`${BASE}/parse-structured`, { resume_text });
+  return data as StructuredResumeData;
+}
+
 export async function tailor(resume_text: string, jd_text: string) {
   const { data } = await axios.post(`${BASE}/tailor`, { resume_text, jd_text });
   return data.tailored as string;
